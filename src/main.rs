@@ -27,7 +27,7 @@ fn main() {
             }
         }
     } else {
-        println!("[usage] mygit ...");
+        println!("usage: mygit <command> [<args>]");
         exit(1);
     };
 }
@@ -79,29 +79,31 @@ fn get_sha1(file_name: &str) -> String {
     hash
 }
 
-fn add(dir_name: &str) {
+fn add(path: &str) {
     // ignore mygit metadata
-    if dir_name == "./.mygit" || dir_name == "./target" || dir_name == "./.git" {
+    if path == "./.mygit" || path == "./target" || path == "./.git" {
         return;
     }
 
-    let dir = fs::read_dir(dir_name).expect("open current directory error!");
+    let f = File::open(path).expect("open file error");
+    if f.metadata().unwrap().is_file() {
+        let hash = get_sha1(path);
+
+        // if the blob of the file dose not exist, create it
+        if !blob_exist(&hash) {
+            mkblob(&path, &hash);
+        }
+        return;
+    }
+
+    let dir = fs::read_dir(path).expect("open current directory error!");
 
     for file in dir {
         let file = file.unwrap();
         let file_name = String::from(file.path().to_str().unwrap());
 
-        if file.file_type().unwrap().is_file() {
-            let hash = get_sha1(&file_name);
-
-            // if the blob of the file dose not exist, create it
-            if !blob_exist(&hash) {
-                mkblob(&file_name, &hash);
-            }
-        } else if file.file_type().unwrap().is_dir() {
-            // traverse project directory tree recursively
-            add(&file_name);
-        }
+        // traverse project directory tree recursively
+        add(&file_name);
     }
 }
 
