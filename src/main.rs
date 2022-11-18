@@ -32,18 +32,22 @@ fn main() {
     };
 }
 
-fn has_init() -> bool {
-    let dir = fs::read_dir("./").expect("open current directory error!");
-
-    // find whether .mygit exists
-    for file in dir {
-        let file = file.unwrap();
-        if file.file_type().unwrap().is_dir() && file.file_name().to_str().unwrap() == ".mygit" {
-            return true;
-        }
+fn dir_exist(dir_path: &str) -> bool {
+    match fs::read_dir(dir_path) {
+        Ok(_) => true,
+        Err(_) => false
     }
+}
 
-    false
+fn file_exist(file_path: &str) -> bool {
+    match File::open(file_path) {
+        Ok(_) => true,
+        Err(_)=> false
+    }
+}
+
+fn has_init() -> bool {
+    dir_exist("./.mygit")
 }
 
 fn init() {
@@ -106,17 +110,9 @@ fn add(path: &str) {
 }
 
 fn blob_exist(hash: &str) -> bool {
-    let obj_dir = fs::read_dir("./.mygit/objects").expect("open ./.mygit/objects error!");
-
-    for obj in obj_dir {
-        let obj = obj.unwrap();
-
-        if obj.file_name().to_str().unwrap() == hash {
-            return true;
-        }
-    }
-
-    false
+    let blob_path = String::from("./.mygit/objects/");
+    let blob_path = blob_path + hash;
+    file_exist(blob_path.as_str())
 }
 
 fn mkblob(content: &Vec<u8>, hash: &str) {
