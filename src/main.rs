@@ -59,14 +59,9 @@ fn init() {
     }
 }
 
-fn get_sha1(file_name: &str) -> String {
+fn get_sha1(buf: &Vec<u8>) -> String {
     let hex_digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
-    let mut f = File::open(file_name).expect("file open error!");
-    let mut buf: Vec<u8> = Vec::new();
     let mut hash = String::new();
-
-    f.read_to_end(&mut buf).unwrap();
-
     let mut hasher = Sha1::new();
 
     hasher.update(&buf);
@@ -85,13 +80,16 @@ fn add(path: &str) {
         return;
     }
 
-    let f = File::open(path).expect("open file error");
+    let mut f = File::open(path).expect("open file error");
     if f.metadata().unwrap().is_file() {
-        let hash = get_sha1(path);
+        let mut content: Vec<u8> = Vec::new();
+
+        f.read_to_end(&mut content).unwrap();
+        let hash = String::from(get_sha1(&content));
 
         // if the blob of the file dose not exist, create it
         if !blob_exist(&hash) {
-            mkblob(&path, &hash);
+            mkblob(&content, &hash);
         }
         return;
     }
@@ -121,14 +119,11 @@ fn blob_exist(hash: &str) -> bool {
     false
 }
 
-fn mkblob(file_path: &str, hash: &str) {
+fn mkblob(content: &Vec<u8>, hash: &str) {
     let blob_path = String::from("./.mygit/objects/");
     let blob_path = blob_path + hash;
     let mut blob = File::create(&blob_path).expect("blob create error!");
-    let mut file = File::open(file_path).expect("open file error!");
-    let mut content: Vec<u8> = Vec::new();
 
-    file.read_to_end(&mut content).unwrap();
     blob.write("blob ".as_bytes()).unwrap();
     blob.write(content.len().to_string().as_bytes()).unwrap();
     blob.write('\0'.to_string().as_bytes()).unwrap();
