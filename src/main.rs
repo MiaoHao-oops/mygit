@@ -3,11 +3,17 @@ use sha1::{Sha1, Digest};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+
+    // parse arguments
     if args.len() > 1 {
         let cmd = args[1].as_str();
         match cmd {
             "init" => init(),
             "add" => {
+                if !has_init() {
+                    println!("this is not a mygit repository!");
+                    exit(1);
+                }
                 if args.len() > 2 {
                     add(args[2].as_str());
                 } else {
@@ -26,20 +32,23 @@ fn main() {
     };
 }
 
-fn init() {
+fn has_init() -> bool {
     let dir = fs::read_dir("./").expect("open current directory error!");
-    let mut has_init = false;
 
     // find whether .mygit exists
     for file in dir {
         let file = file.unwrap();
         if file.file_type().unwrap().is_dir() && file.file_name().to_str().unwrap() == ".mygit" {
-            has_init = true;
+            return true;
         }
     }
 
+    false
+}
+
+fn init() {
     // if .mygit does not exist, create directory .mygit
-    if !has_init {
+    if !has_init() {
         println!("Initialize mygit by creating directory ./.mygit");
         DirBuilder::new()
         .recursive(true)
@@ -71,10 +80,13 @@ fn get_sha1(file_name: &str) -> String {
 }
 
 fn add(dir_name: &str) {
-    if dir_name == "./.mygit" {
+    // ignore mygit metadata
+    if dir_name == "./.mygit" || dir_name == "./target" || dir_name == "./.git" {
         return;
     }
+
     let dir = fs::read_dir(dir_name).expect("open current directory error!");
+
     for file in dir {
         let file = file.unwrap();
         let file_name = String::from(file.path().to_str().unwrap());
@@ -82,10 +94,12 @@ fn add(dir_name: &str) {
         if file.file_type().unwrap().is_file() {
             let hash = get_sha1(&file_name);
 
+            // if the blob of the file dose not exist, create it
             if !blob_exist(&hash) {
                 mkblob(&file_name, &hash);
             }
         } else if file.file_type().unwrap().is_dir() {
+            // traverse project directory tree recursively
             add(&file_name);
         }
     }
@@ -96,7 +110,7 @@ fn blob_exist(hash: &str) -> bool {
 
     for obj in obj_dir {
         let obj = obj.unwrap();
-        
+
         if obj.file_name().to_str().unwrap() == hash {
             return true;
         }
