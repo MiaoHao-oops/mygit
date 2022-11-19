@@ -26,6 +26,7 @@ impl MyGit {
 
     pub fn run(&self) {
         let args: Vec<String> = env::args().collect();
+
         match self.parse_args(&args) {
             Ok(_) => exit(0),
             Err(err) => {
@@ -47,24 +48,10 @@ impl MyGit {
             let cmd = args[1].as_str();
             match cmd {
                 "init" => {
-                    match self.init() {
-                        Ok(_) => Ok(()),
-                        Err(_) => Err(ErrState::InitFailed),
-                    }
+                    self.exec_init()
                 },
                 "add" => {
-                    if let Err(_) = &self.repo_path {
-                        Err(ErrState::NotARepo)
-                    } else {
-                        if args.len() > 2 {
-                            match self.add(args[2].as_str()) {
-                                Ok(_) => Ok(()),
-                                Err(_) => Err(ErrState::AddFailed),
-                            }
-                        } else {
-                            Err(ErrState::LackOfArg)
-                        }
-                    }
+                    self.exec_add(args)
                 },
                 _ => {
                     Err(ErrState::UnknownCmd)
@@ -96,6 +83,28 @@ impl MyGit {
         match File::open(file_path) {
             Ok(_) => true,
             Err(_)=> false,
+        }
+    }
+
+    fn exec_init(&self) -> Result<(), ErrState> {
+        match self.init() {
+            Ok(_) => Ok(()),
+            Err(_) => Err(ErrState::InitFailed),
+        }
+    }
+
+    fn exec_add(&self, args: &Vec<String>) -> Result<(), ErrState> {
+        if let Err(_) = &self.repo_path {
+            Err(ErrState::NotARepo)
+        } else {
+            if args.len() > 2 {
+                match self.add(args[2].as_str()) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err(ErrState::AddFailed),
+                }
+            } else {
+                Err(ErrState::LackOfArg)
+            }
         }
     }
 
